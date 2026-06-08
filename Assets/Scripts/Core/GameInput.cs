@@ -4,31 +4,16 @@ using UnityEngine.InputSystem;
 
 namespace TimelessBrew.Core
 {
-    /// <summary>
-    /// Единый источник ввода (см. §3.1). Оборачивает Unity Input System.
-    /// Все остальные системы читают ввод отсюда, а не напрямую — это нужно,
-    /// чтобы подсказки кнопок и смена устройства (геймпад/клавиатура) жили в одном месте.
-    ///
-    /// ВАЖНО: этот скрипт ожидает, что в проекте создан Input Actions asset
-    /// с Action Map "Gameplay" и действиями:
-    ///   Point (Vector2, Passthrough)        — позиция курсора / стик
-    ///   Interact (Button)                   — ЛКМ / RT (взять, удержание = действие)
-    ///   Inventory (Button)                  — Tab / Y
-    ///   Watch (Button)                      — Q / X (карманные часы)
-    ///   Notebook (Button)                   — B / Back (блокнот рецептов)
-    ///   Pause (Button)                      — Esc / Start
-    /// Перетащи сгенерированный C#-класс действий или используй PlayerInput-компонент.
-    ///
-    /// Здесь сделана "ручная" привязка через InputActionReference, чтобы не зависеть
-    /// от конкретного имени сгенерированного класса. Заполни ссылки в инспекторе.
-    /// </summary>
+    // Единый источник ввода (§3.1). Оборачивает Unity Input System: остальные системы читают
+    // ввод отсюда, а не напрямую. В проекте нужен Input Actions asset с действиями
+    // Point, Interact, Inventory, Watch, Notebook, Pause — ссылки на них назначь в инспекторе.
     public class GameInput : MonoBehaviour
     {
-        public static GameInput Instance { get; private set; }
+        public static GameInput Instance;
 
         public enum Device { KeyboardMouse, Gamepad }
 
-        [Header("Action References (назначь в инспекторе)")]
+        [Header("Действия (назначь в инспекторе)")]
         [SerializeField] private InputActionReference pointAction;
         [SerializeField] private InputActionReference interactAction;
         [SerializeField] private InputActionReference inventoryAction;
@@ -36,11 +21,11 @@ namespace TimelessBrew.Core
         [SerializeField] private InputActionReference notebookAction;
         [SerializeField] private InputActionReference pauseAction;
 
-        /// <summary>Текущее активное устройство ввода. Слушай это событие, чтобы менять подсказки кнопок.</summary>
-        public event Action<Device> OnDeviceChanged;
         public Device CurrentDevice { get; private set; } = Device.KeyboardMouse;
+        public bool InteractHeld { get; private set; }   // удерживается ли ЛКМ (для §4.1)
 
-        // Дискретные события — для UI/часов/паузы, где важен момент нажатия.
+        // События — для UI, часов, паузы и т.п.
+        public event Action<Device> OnDeviceChanged;
         public event Action OnInteractPressed;
         public event Action OnInteractReleased;
         public event Action OnInventoryPressed;
@@ -48,16 +33,9 @@ namespace TimelessBrew.Core
         public event Action OnNotebookPressed;
         public event Action OnPausePressed;
 
-        /// <summary>Удерживается ли кнопка взаимодействия прямо сейчас (для "удержания ЛКМ" из §4.1).</summary>
-        public bool InteractHeld { get; private set; }
-
         private void Awake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
         }
 
@@ -75,10 +53,10 @@ namespace TimelessBrew.Core
                 interactAction.action.started += HandleInteractStarted;
                 interactAction.action.canceled += HandleInteractCanceled;
             }
-            Bind(inventoryAction, _ => OnInventoryPressed?.Invoke());
-            Bind(watchAction, _ => OnWatchPressed?.Invoke());
-            Bind(notebookAction, _ => OnNotebookPressed?.Invoke());
-            Bind(pauseAction, _ => OnPausePressed?.Invoke());
+            if (inventoryAction != null) inventoryAction.action.performed += HandleInventory;
+            if (watchAction != null) watchAction.action.performed += HandleWatch;
+            if (notebookAction != null) notebookAction.action.performed += HandleNotebook;
+            if (pauseAction != null) pauseAction.action.performed += HandlePause;
 
             InputSystem.onActionChange += HandleActionChange;
         }
@@ -90,51 +68,81 @@ namespace TimelessBrew.Core
                 interactAction.action.started -= HandleInteractStarted;
                 interactAction.action.canceled -= HandleInteractCanceled;
             }
+            if (inventoryAction != null) inventoryAction.action.performed -= HandleInventory;
+            if (watchAction != null) watchAction.action.performed -= HandleWatch;
+            if (notebookAction != null) notebookAction.action.performed -= HandleNotebook;
+            if (pauseAction != null) pauseAction.action.performed -= HandlePause;
+
             InputSystem.onActionChange -= HandleActionChange;
         }
 
         private void HandleInteractStarted(InputAction.CallbackContext ctx)
         {
-            //Debug.Log("CLICK received");   // временно
             InteractHeld = true;
-            OnInteractPressed?.Invoke();
+            if (OnInteractPressed != null) OnInteractPressed();
         }
 
         private void HandleInteractCanceled(InputAction.CallbackContext ctx)
         {
             InteractHeld = false;
-            OnInteractReleased?.Invoke();
+            if (OnInteractReleased != null) OnInteractReleased();
         }
 
-        /// <summary>Позиция курсора в экранных координатах. На геймпаде — виртуальный курсор, двигаемый стиком.</summary>
-        public Vector2 PointerScreenPosition =>
-            pointAction != null ? pointAction.action.ReadValue<Vector2>() : (Vector2)Input.mousePosition;
+        private void HandleInventory(InputAction.CallbackContext ctx)
+        {
+            if (OnInventoryPressed != null) OnInventoryPressed();
+        }
 
-        // --- Определение активного устройства для смены подсказок (§3) ---
+        private void HandleWatch(InputAction.CallbackContext ctx)
+        {
+            if (OnWatchPressed != null) OnWatchPressed();
+        }
+
+        private void HandleNotebook(InputAction.CallbackContext ctx)
+        {
+            if (OnNotebookPressed != null) OnNotebookPressed();
+        }
+
+        private void HandlePause(InputAction.CallbackContext ctx)
+        {
+            if (OnPausePressed != null) OnPausePressed();
+        }
+
+        // Позиция курсора в экранных координатах. На геймпаде — виртуальный курсор от стика.
+        public Vector2 PointerScreenPosition
+        {
+            get
+            {
+                if (pointAction != null) return pointAction.action.ReadValue<Vector2>();
+                return Input.mousePosition;   // запасной вариант (старый ввод)
+            }
+        }
+
+        // Определяем активное устройство, чтобы менять подсказки кнопок (§3).
         private void HandleActionChange(object obj, InputActionChange change)
         {
             if (change != InputActionChange.ActionPerformed) return;
-            if (obj is not InputAction action) return;
+
+            InputAction action = obj as InputAction;
+            if (action == null) return;
 
             var control = action.activeControl;
             if (control == null) return;
 
-            Device detected = control.device is Gamepad ? Device.Gamepad : Device.KeyboardMouse;
+            Device detected;
+            if (control.device is Gamepad) detected = Device.Gamepad;
+            else detected = Device.KeyboardMouse;
+
             if (detected != CurrentDevice)
             {
                 CurrentDevice = detected;
-                OnDeviceChanged?.Invoke(CurrentDevice);
+                if (OnDeviceChanged != null) OnDeviceChanged(CurrentDevice);
             }
         }
 
         private static void Enable(InputActionReference r)
         {
             if (r != null) r.action.Enable();
-        }
-
-        private static void Bind(InputActionReference r, Action<InputAction.CallbackContext> cb)
-        {
-            if (r != null) r.action.performed += cb;
         }
     }
 }

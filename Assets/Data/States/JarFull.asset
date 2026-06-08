@@ -17,5 +17,5 @@ MonoBehaviour:
   visualOverride: {fileID: 0}
   fillLevel: -1
   pickable: 1
-  canReceive: 1
-  canPour: 0
+  canReceive: 0
+  canPour: 1

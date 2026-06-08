@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 130fa8d701d5fe9409310f9352f07798, type: 3}
+  m_Name: Guest 2
+  m_EditorClassIdentifier: Assembly-CSharp::TimelessBrew.Data.GuestSO
+  guestId: 
+  displayName: 
+  portrait: {fileID: 0}
+  visitorPrefab: {fileID: 0}
+  visitsMorning: 1
+  visitsEvening: 1
+  morningOrder:
+    drinkName: "\u041A\u043E\u0444\u0435"
+    roast: 3
+    grind: 3
+    water: 1
+    withMilk: 0
+    sugarCubes: 0
+    syrup: 0
+    spices: []
+  eveningOrder:
+    drinkName: "\u041A\u043E\u0444\u0435"
+    roast: 3
+    grind: 3
+    water: 1
+    withMilk: 0
+    sugarCubes: 0
+    syrup: 0
+    spices: []
+  takeawayOnly: 0

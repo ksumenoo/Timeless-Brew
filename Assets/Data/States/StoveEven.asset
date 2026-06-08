@@ -16,6 +16,6 @@ MonoBehaviour:
   hoverHint: 
   visualOverride: {fileID: 0}
   fillLevel: -1
-  pickable: 1
+  pickable: 0
   canReceive: 0
   canPour: 0

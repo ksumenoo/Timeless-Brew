@@ -18,4 +18,4 @@ MonoBehaviour:
   fillLevel: -1
   pickable: 1
   canReceive: 0
-  canPour: 0
+  canPour: 1

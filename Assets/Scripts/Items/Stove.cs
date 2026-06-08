@@ -4,58 +4,79 @@ using TimelessBrew.Data;
 namespace TimelessBrew.Items
 {
     /// <summary>
-    /// Печка с мехами (§6.1). Источник тепла для обжарки и варки.
-    /// Температура — нормализованная величина 0..1:
-    ///   - качание мехов (удержание ЛКМ пустой рукой на ручке мехов) поднимает температуру;
-    ///   - без поддува температура плавно падает до тления.
-    /// Стрелка-индикатор над печкой (§4.2) читает ArrowValue: -1 (мало огня) .. +1 (слишком горячо),
-    /// центр (~0) — оптимальный режим.
+    /// Печка с мехами (§6.1, v4.3). Источник тепла для обжарки и варки.
     ///
-    /// Сама печка непереносима (pickable=false в её состояниях). Ручка мехов — дочерний
-    /// InteractableItem с itemType="BellowsHandle"; на неё игрок наводит курсор и удерживает ЛКМ.
+    /// Раздув стал ДИСКРЕТНЫМ (§4.2 v4.3): каждое качание мехов добавляет жара по делениям —
+    /// два качка выводят на первое деление, три — на второе, четыре — в красную зону. Без поддува
+    /// огонь слабеет до тления. Перебор раскаляет печь до предела: датчик полностью красный,
+    /// и тогда готовить нельзя около десяти секунд (CanCook=false), пока печь не остынет.
+    ///
+    /// Качок засчитывается по «нажатию» на ручку мехов — фронту удержания ЛКМ на bellowsHandle
+    /// (DirectHoldTarget). Тап по мехам = один качок.
+    ///
+    /// Публичный контракт (Temperature 0..1, ArrowValue -1..+1, IsOnBurner) сохранён для RoastingPan.
     /// </summary>
     public class Stove : InteractableItem
     {
         [Header("Печка — ссылки")]
         [SerializeField] private CursorHandler cursorHandler;
-        [Tooltip("Дочерний интерактив 'ручка мехов'. Удержание ЛКМ на нём качает мехи.")]
+        [Tooltip("Дочерний интерактив 'ручка мехов'. Тап ЛКМ по нему = один качок.")]
         [SerializeField] private InteractableItem bellowsHandle;
 
-        [Header("Температура")]
-        [Tooltip("Скорость роста температуры при качании мехов (ед./сек).")]
-        [SerializeField] private float pumpRate = 0.6f;
-        [Tooltip("Скорость падения температуры без поддува (ед./сек).")]
-        [SerializeField] private float decayRate = 0.2f;
+        [Header("Раздув (дискретно)")]
+        [Tooltip("Сколько жара (0..1) добавляет один качок мехов.")]
+        [SerializeField, Range(0.05f, 0.5f)] private float heatPerPump = 0.24f;
+        [Tooltip("Скорость остывания без поддува (ед./сек).")]
+        [SerializeField] private float decayRate = 0.18f;
         [Tooltip("Минимальная температура — печка тлеет, не гаснет полностью.")]
         [SerializeField, Range(0f, 0.3f)] private float smolderFloor = 0.08f;
 
+        [Header("Перегрев")]
+        [Tooltip("Порог температуры, выше которого печь раскаляется до предела (блокировка готовки).")]
+        [SerializeField, Range(0.8f, 1f)] private float overheatAt = 0.95f;
+        [Tooltip("Сколько секунд нельзя готовить после перегрева.")]
+        [SerializeField] private float overheatLockSeconds = 10f;
+
         [Header("Оптимальный режим (для стрелки и обжарки)")]
-        [Tooltip("Нижняя граница оптимальной зоны температуры.")]
         [SerializeField, Range(0f, 1f)] private float optimalMin = 0.55f;
-        [Tooltip("Верхняя граница оптимальной зоны температуры.")]
         [SerializeField, Range(0f, 1f)] private float optimalMax = 0.75f;
 
         [Header("Состояния (по яркости свечения)")]
-        [SerializeField] private ItemStateSO stateCold;     // холодная
-        [SerializeField] private ItemStateSO stateSmolder;  // тлеет
-        [SerializeField] private ItemStateSO stateEven;     // горит ровно
-        [SerializeField] private ItemStateSO stateStrong;   // горит сильно
+        [SerializeField] private ItemStateSO stateCold;        // холодная
+        [SerializeField] private ItemStateSO stateSmolder;     // тлеет
+        [SerializeField] private ItemStateSO stateEven;        // горит ровно
+        [SerializeField] private ItemStateSO stateStrong;      // горит сильно
+        [SerializeField] private ItemStateSO stateOverheated;  // раскалена до предела (опц.; иначе stateStrong)
 
         [Header("Зона конфорки")]
-        [Tooltip("Точка центра конфорки — над ней стоит сковорода/турка.")]
         [SerializeField] private Transform burnerPoint;
-        [Tooltip("Радиус, в пределах которого предмет считается стоящим на конфорке.")]
         [SerializeField] private float burnerRadius = 0.12f;
 
         /// <summary>Текущая температура 0..1.</summary>
         public float Temperature { get; private set; }
 
-        /// <summary>True, если температура в оптимальной зоне.</summary>
-        public bool IsOptimal => Temperature >= optimalMin && Temperature <= optimalMax;
+        /// <summary>True, если печь перегрета и сейчас на ней нельзя готовить.</summary>
+        public bool IsOverheated { get; private set; }
 
-        /// <summary>
-        /// Значение для стрелки-индикатора: -1 (слишком мало огня) .. 0 (оптимум) .. +1 (слишком горячо).
-        /// </summary>
+        /// <summary>Можно ли сейчас готовить на печке (false во время перегрева-блокировки).</summary>
+        public bool CanCook => !IsOverheated;
+
+        /// <summary>True, если температура в оптимальной зоне.</summary>
+        public bool IsOptimal => !IsOverheated && Temperature >= optimalMin && Temperature <= optimalMax;
+
+        /// <summary>Деление жара: 0 — тлеет/мало, 1 — первое деление, 2 — второе, 3 — красная зона.</summary>
+        public int HeatDivision
+        {
+            get
+            {
+                if (Temperature < optimalMin) return 0;
+                if (Temperature <= optimalMax) return 1;
+                if (Temperature < overheatAt) return 2;
+                return 3;
+            }
+        }
+
+        /// <summary>Значение для стрелки-индикатора: -1 (мало огня) .. 0 (оптимум) .. +1 (перегрев).</summary>
         public float ArrowValue
         {
             get
@@ -68,6 +89,9 @@ namespace TimelessBrew.Items
             }
         }
 
+        private float _overheatTimer;
+        private bool _handleHeldPrev;
+
         private void Start()
         {
             if (cursorHandler == null) cursorHandler = FindObjectOfType<CursorHandler>();
@@ -76,25 +100,59 @@ namespace TimelessBrew.Items
 
         private void Update()
         {
-            bool pumping = cursorHandler != null
-                           && bellowsHandle != null
-                           && cursorHandler.DirectHoldTarget == bellowsHandle;
+            if (IsOverheated)
+            {
+                // Печь раскалена до предела: готовить нельзя, ждём окончания блокировки.
+                Temperature = 1f;
+                _overheatTimer -= Time.deltaTime;
+                if (_overheatTimer <= 0f)
+                {
+                    IsOverheated = false;
+                    Temperature = smolderFloor; // сбросило жар, печь остыла до тления
+                }
+                UpdateGlowState();
+                _handleHeldPrev = HandleHeldNow(); // не копим качок, сделанный во время блокировки
+                return;
+            }
 
-            if (pumping)
-                Temperature += pumpRate * Time.deltaTime;
-            else
-                Temperature -= decayRate * Time.deltaTime;
+            // Дискретный качок: фронт удержания ЛКМ на ручке мехов.
+            bool handleHeld = HandleHeldNow();
+            if (handleHeld && !_handleHeldPrev)
+                Pump();
+            _handleHeldPrev = handleHeld;
 
-            Temperature = Mathf.Clamp(Temperature, smolderFloor, 1f);
+            // Остывание без поддува.
+            Temperature = Mathf.Max(smolderFloor, Temperature - decayRate * Time.deltaTime);
 
             UpdateGlowState();
+        }
+
+        private bool HandleHeldNow()
+            => cursorHandler != null && bellowsHandle != null
+               && cursorHandler.DirectHoldTarget == bellowsHandle;
+
+        /// <summary>Один качок мехов — добавить жар; при переборе — перегрев.</summary>
+        private void Pump()
+        {
+            Temperature = Mathf.Min(1f, Temperature + heatPerPump);
+            if (Temperature >= overheatAt)
+                TriggerOverheat();
+        }
+
+        private void TriggerOverheat()
+        {
+            IsOverheated = true;
+            _overheatTimer = overheatLockSeconds;
+            Temperature = 1f;
+            Debug.Log($"[Stove] Перегрев! Готовить нельзя {overheatLockSeconds:0} сек.", this);
         }
 
         private void UpdateGlowState()
         {
             ItemStateSO target;
-            if (Temperature <= smolderFloor + 0.001f) target = stateSmolder != null ? stateSmolder : stateCold;
-            else if (Temperature < optimalMin)        target = stateSmolder;
+            if (IsOverheated)                          target = stateOverheated != null ? stateOverheated : stateStrong;
+            else if (Temperature <= smolderFloor + 0.001f) target = stateSmolder != null ? stateSmolder : stateCold;
+            else if (Temperature < optimalMin)         target = stateSmolder;
             else if (Temperature <= optimalMax)        target = stateEven;
             else                                        target = stateStrong;
 

@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using TimelessBrew.Core;
 using TimelessBrew.Data;
@@ -66,10 +65,11 @@ namespace TimelessBrew.Items
         public bool HasBeans { get; private set; }
         public RoastStage Stage { get; private set; } = RoastStage.Green;
 
-        /// <summary>Срабатывает при переходе на новую стадию (для звука/подсказок).</summary>
-        public event Action<RoastStage> OnStageChanged;
-
         private MaterialPropertyBlock _mpb;
+
+        // Качество засыпки (скилчек §4.2 v4.3): множитель к качеству обжарки. 1 = нет скилчека/идеально.
+        private float _fillQuality = 1f;
+        private bool _waitingFill;   // ждём результат скилчека засыпки
 
         private void Start()
         {
@@ -89,18 +89,35 @@ namespace TimelessBrew.Items
 
             HasBeans = true;
             RoastProgress = 0f;
+            _fillQuality = 1f;
             SetStage(RoastStage.Green, force: true);
             if (stateBeans != null) SetState(stateBeans);
+
+            // Скилчек точности количества (§4.2 v4.3). Результат заберём, когда игрок отпустит ЛКМ.
+            if (Skillcheck.Instance != null)
+            {
+                Skillcheck.Instance.Begin();
+                _waitingFill = true;
+            }
+
             return true;
         }
 
         private void Update()
         {
+            // Забираем результат скилчека засыпки, когда он готов.
+            if (_waitingFill && Skillcheck.Instance != null && Skillcheck.Instance.HasResult)
+            {
+                _fillQuality = 0.4f + 0.6f * Skillcheck.Instance.Result;
+                _waitingFill = false;
+            }
+
             if (!HasBeans) return;
 
             bool onBurner = stove != null
                             && cursorHandler != null
                             && cursorHandler.Carried != this   // не на курсоре = стоит на столе/печке
+                            && stove.CanCook                   // во время перегрева (§6.1 v4.3) готовить нельзя
                             && stove.IsOnBurner(transform);
 
             if (onBurner)
@@ -119,12 +136,12 @@ namespace TimelessBrew.Items
 
         private void UpdateStage()
         {
-            RoastStage s =
-                RoastProgress >= burntAt      ? RoastStage.Burnt :
-                RoastProgress >= richBrownAt  ? RoastStage.RichBrown :
-                RoastProgress >= lightBrownAt ? RoastStage.LightBrown :
-                RoastProgress >= yellowAt     ? RoastStage.Yellow :
-                                                RoastStage.Green;
+            RoastStage s;
+            if (RoastProgress >= burntAt) s = RoastStage.Burnt;
+            else if (RoastProgress >= richBrownAt) s = RoastStage.RichBrown;
+            else if (RoastProgress >= lightBrownAt) s = RoastStage.LightBrown;
+            else if (RoastProgress >= yellowAt) s = RoastStage.Yellow;
+            else s = RoastStage.Green;
             if (s != Stage) SetStage(s);
         }
 
@@ -132,7 +149,6 @@ namespace TimelessBrew.Items
         {
             if (!force && s == Stage) return;
             Stage = s;
-            OnStageChanged?.Invoke(s);
         }
 
         private void UpdateBeanColor()
@@ -173,8 +189,28 @@ namespace TimelessBrew.Items
         /// <summary>Зафиксировать обжарку (вызывается, когда сковорода снята и зёрна уходят в дуршлаг).</summary>
         public void EmptyToDurshlag()
         {
+            // Пишем результат этапа 1 в сессию приготовления: степень обжарки + качество (попал ли в окно).
+            if (BrewSession.Instance != null)
+                BrewSession.Instance.RecordRoast(ToRoastLevel(Stage), RoastQuality01() * _fillQuality);
+
             HasBeans = false;
             if (stateHot != null) SetState(stateHot);
         }
+
+        /// <summary>Маппинг внутренней стадии сковороды в категориальную степень обжарки для оценки (§4.3).</summary>
+        private static RoastLevel ToRoastLevel(RoastStage stage) => stage switch
+        {
+            RoastStage.Green      => RoastLevel.Green,
+            RoastStage.Yellow     => RoastLevel.Yellow,
+            RoastStage.LightBrown => RoastLevel.LightBrown,
+            RoastStage.RichBrown  => RoastLevel.DeepBrown,
+            RoastStage.Burnt      => RoastLevel.Burnt,
+            _                     => RoastLevel.DeepBrown
+        };
+
+        // Временно для тестов: вручную «ссыпать в дуршлаг» и записать обжарку в BrewSession,
+        // пока этап 2 (дуршлаг) не построен. ПКМ по компоненту в Play.
+        [ContextMenu("DEBUG: Empty to durshlag (record roast)")]
+        private void DebugEmptyToDurshlag() => EmptyToDurshlag();
     }
 }
