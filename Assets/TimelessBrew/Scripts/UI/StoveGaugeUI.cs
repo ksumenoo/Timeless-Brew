@@ -54,7 +54,9 @@ namespace TimelessBrew.UI
 
             float t = Mathf.Clamp01((_stove.Arrow + 1f) * 0.5f);   // -1..1 → 0..1
             _needle.anchoredPosition = new Vector2((t - 0.5f) * Width, 0f);
-            _label.text = $"Печь  {(_stove.Heat * 100f):0}%" + (_stove.IsOptimal ? "  <color=#88ff88>оптимум</color>" : "");
+            _label.text = _stove.IsOverheated
+                ? $"Печь  {(_stove.Heat * 100f):0}%  <color=#ff6655>раскалена! остывает…</color>"
+                : $"Печь  {(_stove.Heat * 100f):0}%" + (_stove.IsOptimal ? "  <color=#88ff88>оптимум</color>" : "");
 
             Vector3 sp = _cam.WorldToScreenPoint(_stove.BurnerPosition);
             if (sp.z < 0f) { _root.gameObject.SetActive(false); return; }

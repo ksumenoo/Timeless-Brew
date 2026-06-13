@@ -18,6 +18,8 @@ namespace TimelessBrew
         private void Awake() => _vessel = GetComponent<Vessel>();
 
         public bool HasGrounds => _vessel.mix.beans > 0.001f;
+        /// <summary>Тонкость помола 0..1 (для шкалы).</summary>
+        public float GrindAmount => _grind;
         public GrindSize CurrentGrind =>
             _grind >= 0.75f ? GrindSize.Powder :
             _grind >= 0.5f ? GrindSize.Fine :
@@ -30,11 +32,12 @@ namespace TimelessBrew
             _grind = Mathf.Min(1f, _grind + grindPerSecond * dt);
         }
 
-        /// <summary>Зачерпнуть молотый рукой.</summary>
-        public bool TakeGrounds(out GrindSize grind, out RoastLevel roast)
+        /// <summary>Зачерпнуть молотый рукой (профиль партии уезжает вместе с горстью).</summary>
+        public bool TakeGrounds(out GrindSize grind, out RoastLevel roast, out bool sifted)
         {
             grind = CurrentGrind;
             roast = _vessel.mix.roast;
+            sifted = _vessel.mix.sifted;
             if (!HasGrounds) return false;
             _vessel.mix.beans = 0f;
             _grind = 0f;

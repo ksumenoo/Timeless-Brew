@@ -37,11 +37,13 @@ namespace TimelessBrew
         public RoastLevel roast = RoastLevel.Raw;   // обжарка зёрен/молотого
         public GrindSize grind = GrindSize.Whole;   // помол
         public WaterType waterType = WaterType.None;
+        public bool sifted = true;                  // шелуха просеяна (false — после обжарки, пока не потрясли дуршлаг над раковиной)
 
         [Header("Добавки")]
         public int sugar;
         public List<string> syrups = new();
         public List<string> spices = new();
+        public bool latteArt;   // нарисован латте-арт (только через питчер, §4.2 этап 5)
 
         public bool IsEmpty =>
             beans <= 0.001f && grounds <= 0.001f && water <= 0.001f && coffee <= 0.001f &&
@@ -51,17 +53,20 @@ namespace TimelessBrew
         {
             beans = grounds = water = coffee = milk = foam = temperature = 0f;
             roast = RoastLevel.Raw; grind = GrindSize.Whole; waterType = WaterType.None;
+            sifted = true;
             sugar = 0; syrups.Clear(); spices.Clear();
+            latteArt = false;
         }
 
         /// <summary>Многострочная сводка состава для UI-панели сосуда.</summary>
         public string Summary()
         {
             var sb = new StringBuilder();
-            if (beans > 0.001f) sb.AppendLine($"Зёрна ({RoastRu(roast)})");
-            if (grounds > 0.001f) sb.AppendLine($"Молотый ({GrindRu(grind)}, {RoastRu(roast)})");
+            string husk = sifted ? "" : ", с шелухой";
+            if (beans > 0.001f) sb.AppendLine($"Зёрна ({RoastRu(roast)}{husk})");
+            if (grounds > 0.001f) sb.AppendLine($"Молотый ({GrindRu(grind)}, {RoastRu(roast)}{husk})");
             if (water > 0.001f) sb.AppendLine($"Вода ({(waterType == WaterType.Hot ? "горячая" : "холодная")})");
-            if (coffee > 0.001f) sb.AppendLine($"Кофе {(coffee * 100f):0}%");
+            if (coffee > 0.001f) sb.AppendLine($"Кофе {(coffee * 100f):0}%{(sifted ? "" : " (с шелухой)")}");
             if (milk > 0.001f) sb.AppendLine($"Молоко {(milk * 100f):0}%");
             // Пенку здесь НЕ выводим — она показывается в статусе варки (Vessel.StatusLine), иначе дублируется.
             if (sugar > 0) sb.AppendLine($"Сахар ×{sugar}");
@@ -85,10 +90,10 @@ namespace TimelessBrew
 
         private static readonly Dictionary<string, string> Names = new()
         {
-            { "caramel", "карамель" }, { "vanilla", "ваниль" }, { "cardamom", "кардамон" },
-            { "cinnamon", "корица" }, { "star_anise", "бадьян" }, { "saffron", "шафран" },
-            { "nutmeg", "мускат" }, { "rosemary", "розмарин" }, { "lavender", "лаванда" },
-            { "cocoa", "какао" }, { "orange_zest", "цедра апельсина" }, { "lemon_zest", "цедра лимона" },
+            { "caramel", "Карамель" }, { "vanilla", "Ваниль" }, { "cardamom", "Кардамон" },
+            { "cinnamon", "Корица" }, { "star_anise", "Бадьян" }, { "saffron", "Шафран" },
+            { "nutmeg", "Мускат" }, { "rosemary", "Розмарин" }, { "lavender", "Лаванда" },
+            { "cocoa", "Какао" }, { "orange_zest", "Цедра апельсина" }, { "lemon_zest", "Цедра лимона" },
         };
         public static string NameRu(string id) => Names.TryGetValue(id, out var ru) ? ru : id;
         private static string JoinRu(List<string> ids)

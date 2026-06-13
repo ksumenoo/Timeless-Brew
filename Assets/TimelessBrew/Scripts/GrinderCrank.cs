@@ -1,4 +1,5 @@
 using UnityEngine;
+using TimelessBrew.Audio;
 
 namespace TimelessBrew
 {
@@ -7,6 +8,16 @@ namespace TimelessBrew
     {
         [SerializeField] private Grinder grinder;
         public void SetGrinder(Grinder g) => grinder = g;
-        public void Hold(float dt) { if (grinder != null) grinder.Grind(dt); }
+
+        public void Hold(float dt)
+        {
+            if (grinder == null) return;
+            grinder.Grind(dt);
+            // Звук помола, пока крутим: с зёрнами — жернова, вхолостую — холостой ход.
+            // Раздельные каналы: при переходе «есть зёрна ↔ пусто» один затухает, другой нарастает
+            // (кроссфейд), а не подменяется клип у играющего источника — без щелчка/перезапуска.
+            AudioManager.Instance.Loop(grinder.HasGrounds ? "grind" : "grind_empty",
+                                       grinder.HasGrounds ? Sfx.Grind : Sfx.GrindEmpty);
+        }
     }
 }

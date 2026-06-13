@@ -1,10 +1,13 @@
+using System.Collections;
 using UnityEngine;
+using TimelessBrew.Audio;
 
 namespace TimelessBrew
 {
     /// <summary>
-    /// Звоночек выдачи. Ставишь готовую чашку на зелёную скатерть и кликаешь по звоночку:
-    /// напиток сравнивается с заказом гостя, выставляются звёзды, чашка опустошается, гость уходит.
+    /// Звоночек выдачи. Подача собирается стопкой: поднос → блюдце → чашка (на зелёной скатерти).
+    /// Клик по звоночку: напиток сравнивается с заказом, звёзды, гость уходит, а собранная подача
+    /// на пару секунд исчезает и возвращается на свои места.
     /// </summary>
     public class Bell : MonoBehaviour
     {
@@ -17,18 +20,38 @@ namespace TimelessBrew
 
         public void Ring()
         {
+            AudioManager.Instance.Play(Sfx.BellServe);   // физический «динь» звоночка
             if (_service == null) _service = FindFirstObjectByType<GuestService>();
             if (_service == null) return;
 
-            if (_service.Current == null) { _service.Message("Сначала вызови гостя (Tab)"); return; }
+            if (!_service.HasOrders) { _service.Message("Сначала вызови гостя (Tab)"); return; }
 
             Vessel cup = FindCupOnMat();
-            if (cup == null) { _service.Message("Поставь готовую чашку на зелёную скатерть"); return; }
+            if (cup == null) { _service.Message("Поставь подачу на зелёную скатерть"); return; }
 
-            int stars = OrderScorer.Score(cup.mix, _service.CurrentOrder, out string reaction, out string faults);
-            string guest = _service.Current.displayName;
+            // Сборка подачи: чашка должна стоять на блюдце, а блюдце — на подносе.
+            var grab = cup.GetComponent<Grabbable>();
+            var saucer = cup.transform.parent != null ? cup.transform.parent.GetComponent<Grabbable>() : null;
+            bool onSaucer = saucer != null && saucer.displayName == "Блюдце";
+            var tray = onSaucer && saucer.transform.parent != null ? saucer.transform.parent.GetComponent<Grabbable>() : null;
+            bool onTray = tray != null && tray.stackGroup == "tray";
+            if (!onSaucer || !onTray) { _service.Message("Собери подачу: поднос → блюдце → чашка"); return; }
+
+            bool cupRound = grab != null && !string.IsNullOrEmpty(grab.displayName) && grab.displayName.Contains("пузат");
+            // Подача уходит лучшему совпадению среди ждущих гостей; он уходит, его чек исчезает.
+            if (!_service.TryServe(cup.mix, cupRound)) { _service.Message("Сейчас никто не ждёт заказ"); return; }
             cup.Empty();
-            _service.Served($"<b>{guest}</b>: {StarsStr(stars)}  ({reaction})  —  {faults}");
+
+            // Подача (поднос+блюдце+чашка) исчезает на пару секунд и возвращается на свои места.
+            StartCoroutine(ServeReset(new[] { grab, saucer, tray }, 2f));
+        }
+
+        private IEnumerator ServeReset(Grabbable[] items, float delay)
+        {
+            foreach (var it in items) if (it != null) it.gameObject.SetActive(false);
+            yield return new WaitForSecondsRealtime(delay);   // реальное время — не зависнет на паузе
+            foreach (var it in items)
+                if (it != null) { it.gameObject.SetActive(true); it.ReturnHome(); }
         }
 
         private Vessel FindCupOnMat()
@@ -38,19 +61,13 @@ namespace TimelessBrew
             float bestDist = serveRadius;
             foreach (var v in Vessel.All)
             {
+                if (v == null) continue;
                 if (v.kind != Vessel.Kind.Cup || v.mix.coffee <= 0.05f) continue;
                 Vector3 p = v.transform.position; p.y = 0f;
                 float d = Vector3.Distance(o, p);
                 if (d <= bestDist) { bestDist = d; best = v; }
             }
             return best;
-        }
-
-        private static string StarsStr(int s)
-        {
-            string r = "";
-            for (int i = 0; i < 5; i++) r += i < s ? "★" : "☆";
-            return r;
         }
     }
 }

@@ -26,7 +26,8 @@ namespace TimelessBrew.UI
         {
             if (_hand == null) { _hand = FindFirstObjectByType<Hand>(); return; }
 
-            string text = _hand.CursorLabel;
+            // Подсказка у курсора — часть «тестового» UI; в обычном режиме её заменяет HoverLabelUI.
+            string text = UiSettings.IsTesting ? _hand.CursorLabel : null;
             bool show = !string.IsNullOrEmpty(text);
             if (_panel.gameObject.activeSelf != show) _panel.gameObject.SetActive(show);
             if (!show) return;

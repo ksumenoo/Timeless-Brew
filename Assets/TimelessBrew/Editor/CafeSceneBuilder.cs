@@ -196,14 +196,23 @@ namespace TimelessBrew.EditorTools
             counterPt.position = new Vector3(c.x, groundY + 1f, c.z - (ez + 0.55f * u));
             var gservice = Make(sys, "GuestService").gameObject.AddComponent<GuestService>();
             gservice.counterPoint = counterPt;
+            gservice.gameObject.AddComponent<DayClock>();   // часы рабочего дня (§4.4)
 
             // --- UI ---
             var ui = new GameObject("— UI —");
             ui.AddComponent<HudUI>();
-            ui.AddComponent<CursorTooltip>();
-            ui.AddComponent<VesselPanel>();
-            ui.AddComponent<StoveGaugeUI>();
-            ui.AddComponent<GuestBookUI>();
+            ui.AddComponent<CursorTooltip>();      // тестовый режим: подсказка у курсора
+            ui.AddComponent<VesselPanel>();        // тестовый режим: текстовые панели состава
+            ui.AddComponent<StoveGaugeUI>();       // датчик печи (оба режима)
+            ui.AddComponent<HoverLabelUI>();       // обычный режим: подпись над предметом
+            ui.AddComponent<VesselGaugeUI>();      // обычный режим: вертикальные шкалы у сосудов
+            ui.AddComponent<SettingsGearUI>();     // шестерёнка настроек (режим UI/громкости/сложность)
+            ui.AddComponent<NotebookUI>();         // дневник на Tab (заменяет книгу гостей)
+            ui.AddComponent<ToastUI>();            // крупные всплывашки («Ты дурашка!», результат)
+            ui.AddComponent<CheckReaderUI>();      // читалка чека слева при клике по приколотому чеку
+            ui.AddComponent<LatteArtUI>();         // мини-игра латте-арта (клик питчером по готовому кофе)
+            ui.AddComponent<DayClockUI>();         // часы дня + кнопки скорости времени
+            ui.AddComponent<EndOfDayUI>();         // итоги смены в конце дня
 
             // ===================== ПРЕДМЕТЫ =====================
             var items = new GameObject("— Items —").transform;
@@ -287,7 +296,7 @@ namespace TimelessBrew.EditorTools
             MakeVessel(items, "Pan", "Сковорода", Vessel.Kind.Pan, P(-0.46f, -0.13f), "skovoroda", 0.2f * u, itemLayer);
             MakeVessel(items, "Kettle", "Чайник", Vessel.Kind.Kettle, P(0.7f, -0.1f), "chainik", 0.16f * u, itemLayer);
             MakeVessel(items, "Cezve", "Турка", Vessel.Kind.Cezve, P(0.4f, -0.08f), "turka", 0.13f * u, itemLayer);
-            MakeVessel(items, "Pitcher", "Молочник", Vessel.Kind.Pitcher, P(-0.28f, -0.06f), "pitcher", 0.12f * u, itemLayer);
+            MakeVessel(items, "Pitcher", "Питчер", Vessel.Kind.Pitcher, P(-0.28f, -0.06f), "pitcher", 0.12f * u, itemLayer);
             MakeVessel(items, "Cup", "Чашка", Vessel.Kind.Cup, P(-0.16f, 0.18f), "CUP", 0.11f * u, itemLayer);
             MakeVessel(items, "Cup 2", "Чашка (пузатая)", Vessel.Kind.Cup, P(-0.34f, 0.2f), "CUPSIZE", 0.11f * u, itemLayer);
 

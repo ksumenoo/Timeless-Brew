@@ -1,4 +1,5 @@
 using UnityEngine;
+using TimelessBrew.Audio;
 
 namespace TimelessBrew
 {
@@ -40,7 +41,18 @@ namespace TimelessBrew
                     { v.mix.spices.Add(id); applied = true; }
                     break;
             }
-            if (applied) OnApplied?.Invoke();
+            if (applied)
+            {
+                OnApplied?.Invoke();
+                // Звук добавки. Сироп пока без файла (тишина) — см. примечание по звукам.
+                AudioManager.Instance.Play(kind switch
+                {
+                    Kind.Spice => Sfx.Spice,
+                    Kind.Sugar => Sfx.SugarCube,
+                    Kind.Syrup => Sfx.Syrup,
+                    _ => Sfx.None
+                });
+            }
         }
     }
 }

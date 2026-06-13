@@ -26,6 +26,15 @@ namespace TimelessBrew.UI
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
+            // Текстовые панели состава — «тестовый» UI. В обычном режиме их заменяют шкалы (VesselGaugeUI).
+            if (!UiSettings.IsTesting)
+            {
+                foreach (var kv in _panels)
+                    if (kv.Value != null && kv.Value.transform.parent.gameObject.activeSelf)
+                        kv.Value.transform.parent.gameObject.SetActive(false);
+                return;
+            }
+
             foreach (var v in Vessel.All)
             {
                 if (v == null) continue;
@@ -55,6 +64,9 @@ namespace TimelessBrew.UI
             if (grinder != null) sb.AppendLine(grinder.StatusLine());
             else if (!v.mix.IsEmpty) sb.AppendLine(v.mix.Summary());
 
+            var colander = v.GetComponent<Colander>();
+            if (colander != null) sb.AppendLine(colander.StatusLine());
+
             string status = v.StatusLine();
             if (!string.IsNullOrEmpty(status)) sb.AppendLine(status);
 
@@ -65,7 +77,8 @@ namespace TimelessBrew.UI
         private static string Title(Vessel v) => v.kind switch
         {
             Vessel.Kind.Cup => "Чашка", Vessel.Kind.Cezve => "Турка", Vessel.Kind.Pan => "Сковорода",
-            Vessel.Kind.Grinder => "Кофемолка", Vessel.Kind.Kettle => "Чайник", Vessel.Kind.Pitcher => "Молочник",
+            Vessel.Kind.Grinder => "Кофемолка", Vessel.Kind.Kettle => "Чайник", Vessel.Kind.Pitcher => "Питчер",
+            Vessel.Kind.Colander => "Дуршлаг",
             _ => v.kind.ToString()
         };
 
