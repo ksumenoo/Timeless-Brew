@@ -213,6 +213,7 @@ namespace TimelessBrew.EditorTools
             ui.AddComponent<LatteArtUI>();         // мини-игра латте-арта (клик питчером по готовому кофе)
             ui.AddComponent<DayClockUI>();         // часы дня + кнопки скорости времени
             ui.AddComponent<EndOfDayUI>();         // итоги смены в конце дня
+            ui.AddComponent<TutorialController>(); // пошаговое обучение при первом запуске
 
             // ===================== ПРЕДМЕТЫ =====================
             var items = new GameObject("— Items —").transform;

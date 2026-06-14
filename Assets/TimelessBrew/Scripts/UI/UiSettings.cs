@@ -19,6 +19,10 @@ namespace TimelessBrew.UI
         public static Mode UiMode { get; private set; }
         public static Difficulty Diff { get; private set; }
 
+        public static bool TutorialEnabled { get; private set; }   // тумблер «обучение в новой игре»
+        public static bool StartNewGame { get; set; } = true;      // в кухню зашли через «Новая игра» (не «Продолжить»)
+        public static bool ShouldRunTutorial => TutorialEnabled && StartNewGame;
+
         /// <summary>Сработало изменение любой настройки UI/сложности.</summary>
         public static event Action Changed;
 
@@ -26,6 +30,7 @@ namespace TimelessBrew.UI
         {
             UiMode = (Mode)PlayerPrefs.GetInt("tb_ui_mode", (int)Mode.Normal);
             Diff = (Difficulty)PlayerPrefs.GetInt("tb_difficulty", (int)Difficulty.Normal);
+            TutorialEnabled = PlayerPrefs.GetInt("tb_tutorial_enabled", 1) == 1;
         }
 
         public static bool IsNormal => UiMode == Mode.Normal;
@@ -44,6 +49,14 @@ namespace TimelessBrew.UI
             if (d == Diff) return;
             Diff = d;
             PlayerPrefs.SetInt("tb_difficulty", (int)d);
+            Changed?.Invoke();
+        }
+
+        /// <summary>Тумблер обучения (показывать ли его при «Новой игре»). Сохраняется в PlayerPrefs.</summary>
+        public static void SetTutorialEnabled(bool on)
+        {
+            TutorialEnabled = on;
+            PlayerPrefs.SetInt("tb_tutorial_enabled", on ? 1 : 0);
             Changed?.Invoke();
         }
     }

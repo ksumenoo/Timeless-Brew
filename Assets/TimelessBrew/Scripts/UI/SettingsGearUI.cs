@@ -24,6 +24,8 @@ namespace TimelessBrew.UI
         private Slider _drag;
 
         private RectTransform _gearRect;     // зона клика по шестерёнке (на HUD-канве, всегда видна)
+        private RawImage _tutBtn;            // тумблер обучения
+        private Text _tutLbl;
 
         private static readonly Color Wood = new(0.17f, 0.12f, 0.08f, 1f);
         private static readonly Color WoodLite = new(0.30f, 0.21f, 0.13f, 1f);
@@ -58,6 +60,7 @@ namespace TimelessBrew.UI
             }
             foreach (var s in _sliders) RefreshSlider(s);
             RefreshHighlights();
+            RefreshTutorialBtn();
         }
 
         private void OnDestroy()
@@ -146,7 +149,7 @@ namespace TimelessBrew.UI
 
             var panel = UguiUtil.Rect(_panelCanvas.transform, "Panel", Wood);
             var prt = (RectTransform)panel.transform;
-            prt.Anchor(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(660f, 840f));
+            prt.Anchor(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(660f, 920f));
             Stripe(prt, 1f, Gold);   // верхняя золотая черта
 
             var title = UguiUtil.Label(prt, "Title", 34, TextAnchor.UpperCenter);
@@ -170,6 +173,13 @@ namespace TimelessBrew.UI
             VolumeSlider(prt, "Общая", y, () => AudioManager.Instance.Master, v => AudioManager.Instance.SetMaster(v)); y -= 64f;
             VolumeSlider(prt, "Эффекты", y, () => AudioManager.Instance.SfxVolume, v => AudioManager.Instance.SetSfx(v)); y -= 64f;
             VolumeSlider(prt, "Музыка", y, () => AudioManager.Instance.MusicVolume, v => AudioManager.Instance.SetMusic(v)); y -= 64f;
+
+            Header(prt, "Обучение", ref y);
+            _tutBtn = MakeButton(prt, "Обучение в новой игре", new Vector2(0f, y), new Vector2(440f, 52f), new Vector2(0.5f, 1f),
+                () => UiSettings.SetTutorialEnabled(!UiSettings.TutorialEnabled));
+            _tutBtn.name = "Tutorial";
+            _tutLbl = _tutBtn.GetComponentInChildren<Text>();
+            RefreshTutorialBtn();
 
             // Выход из игры — прямо из настроек.
             MakeButton(prt, "В меню", new Vector2(-130f, 100f), new Vector2(240f, 52f), new Vector2(0.5f, 0f), ToMenu);
@@ -263,6 +273,14 @@ namespace TimelessBrew.UI
             float w = s.track.sizeDelta.x;
             s.fill.rectTransform.sizeDelta = new Vector2(w * v, 16f);
             s.handle.rectTransform.anchoredPosition = new Vector2(w * v, 0f);
+        }
+
+        private void RefreshTutorialBtn()
+        {
+            if (_tutLbl == null) return;
+            bool on = UiSettings.TutorialEnabled;
+            _tutLbl.text = "Обучение в новой игре:  " + (on ? "ВКЛ" : "ВЫКЛ");
+            if (_tutBtn != null) _tutBtn.color = on ? Gold : WoodLite;
         }
 
         private void RefreshHighlights()

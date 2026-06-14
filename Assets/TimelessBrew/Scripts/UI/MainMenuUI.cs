@@ -104,8 +104,8 @@ namespace TimelessBrew.UI
                 string tag = items[i, 1];
                 Action act = tag switch
                 {
-                    "new" => StartGame,
-                    "continue" => StartGame,           // сохранений пока нет — тоже запуск
+                    "new" => () => StartGame(true),         // новая игра — с обучением (если включено в настройках)
+                    "continue" => () => StartGame(false),   // продолжить — без обучения
                     "settings" => OpenSettings,
                     "quit" => Quit,
                     _ => () => Note("В разработке"),
@@ -162,8 +162,9 @@ namespace TimelessBrew.UI
 
         // ===================== ДЕЙСТВИЯ =====================
 
-        private void StartGame()
+        private void StartGame(bool newGame)
         {
+            UiSettings.StartNewGame = newGame;   // обучение запустится только при «Новой игре» (и если включено)
             if (!string.IsNullOrEmpty(kitchenScene)) SceneManager.LoadScene(kitchenScene);
         }
 

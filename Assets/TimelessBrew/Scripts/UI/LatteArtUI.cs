@@ -73,7 +73,7 @@ namespace TimelessBrew.UI
                 float r = _cup.rect.width * 0.5f;
                 if (local.magnitude <= r)
                 {
-                    float d = Mathf.Min(Time.unscaledDeltaTime * 0.5f, _pitcher.mix.milk);   // не больше, чем есть
+                    float d = Mathf.Min(Time.unscaledDeltaTime * 0.25f, _pitcher.mix.milk);   // расход молока вдвое медленнее — хватает надолго
                     _milk = Mathf.Min(1f, _milk + d);
                     _pitcher.mix.milk = Mathf.Max(0f, _pitcher.mix.milk - d);
                     _cupImg.color = Color.Lerp(Coffee, Latte, _milk);

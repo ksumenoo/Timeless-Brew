@@ -24,6 +24,19 @@ namespace TimelessBrew.EditorTools
         [MenuItem("TimelessBrew/Upgrade Open Scene (механики)", priority = 2)]
         public static void UpgradeOpenScene()
         {
+            // Защита от частой ошибки: апгрейд добавляет кухонные механики и HUD и предназначен ТОЛЬКО
+            // для сцены кухни. Если открыто меню (в сцене нет руки игрока) — не засоряем его кухонным UI.
+            if (Object.FindFirstObjectByType<Hand>() == null)
+            {
+                EditorUtility.DisplayDialog("Upgrade Open Scene",
+                    "Похоже, открыта не сцена кухни (в сцене нет Hand).\n\n" +
+                    "Эта команда добавляет кухонные механики и интерфейс (печь, шкалы, подсказки) и " +
+                    "предназначена для Kitchen.unity. Откройте сцену кухни и повторите.\n\n" +
+                    "Главное меню собирается отдельной командой: TimelessBrew → Build Main Menu.",
+                    "Понятно");
+                return;
+            }
+
             int itemLayer = EnsureLayer("Item");
             int surfaceLayer = EnsureLayer("Surface");
             int changes = 0;
@@ -559,6 +572,7 @@ namespace TimelessBrew.EditorTools
             changes += EnsureComp<ToastUI>(ui);
             changes += EnsureComp<CheckReaderUI>(ui);
             changes += EnsureComp<LatteArtUI>(ui);
+            changes += EnsureComp<TutorialController>(ui);
 
             // Молочник → Питчер.
             foreach (var v in Object.FindObjectsByType<Vessel>(FindObjectsSortMode.None))

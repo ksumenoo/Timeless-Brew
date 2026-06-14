@@ -21,6 +21,9 @@ namespace TimelessBrew
         private float _yaw;
         private int _index;   // -1 (влево), 0 (центр), +1 (вправо)
 
+        /// <summary>Игрок хотя бы раз повернул камеру (для обучения).</summary>
+        public bool HasRotated { get; private set; }
+
         private void Start() => _baseRotation = transform.rotation;
 
         private void Update()
@@ -35,6 +38,7 @@ namespace TimelessBrew
 
             if (left) _index = Mathf.Max(-1, _index - 1);
             if (right) _index = Mathf.Min(1, _index + 1);
+            if (left || right) HasRotated = true;
 
             float target = _index * maxYaw;
             _yaw = Mathf.Lerp(_yaw, target, smoothing * Time.deltaTime);

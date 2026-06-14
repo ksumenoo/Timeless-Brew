@@ -99,6 +99,10 @@ namespace TimelessBrew.UI
         public static void Toggle(Check c) { if (_inst != null) _inst.ToggleInternal(c); }
         public static void HideIf(Check c) { if (_inst != null && _inst._current == c) _inst.HideInternal(); }
 
+        /// <summary>Открыта ли читалка для этого чека сейчас (для обучения).</summary>
+        public static bool IsShowing(Check c) =>
+            _inst != null && _inst._current == c && _inst._canvasGo != null && _inst._canvasGo.activeSelf;
+
         private void ToggleInternal(Check c)
         {
             if (_canvasGo == null) return;

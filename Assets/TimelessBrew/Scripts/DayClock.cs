@@ -25,6 +25,7 @@ namespace TimelessBrew
         private float _speed = 1f;
         private bool _guardPushed;   // занят ли слот ModalGuard под паузу (чтобы блокировать руку)
         private bool _dayEnded;      // итоги смены уже показаны
+        private bool _closing;       // время вышло — кофейня закрывается, ждём ухода последнего гостя
         private GuestService _service;
         private GuestLibrary _library;
         private Light _sun;
@@ -38,6 +39,9 @@ namespace TimelessBrew
         public DayPhase Phase => DayFraction < 1f / 3f ? DayPhase.Morning : DayFraction < 2f / 3f ? DayPhase.Day : DayPhase.Evening;
         public float Speed => _speed;
         public bool IsPaused { get; private set; }
+
+        /// <summary>На время обучения: день не идёт, гости по расписанию не приходят, итоги не подводятся.</summary>
+        public bool Suspended { get; set; }
 
         public void SetNormal() { IsPaused = false; _speed = 1f; ApplyTimeScale(); }
         public void SetFast() { IsPaused = false; _speed = fastMultiplier; ApplyTimeScale(); }
@@ -94,6 +98,7 @@ namespace TimelessBrew
 
         private void Update()
         {
+            if (Suspended) return;   // обучение заморозило день: время стоит, расписание молчит, итоги не подводятся
             _t = Mathf.Clamp(_t + _speed * Time.deltaTime, 0f, dayLengthSeconds);
 
             // Расписание: гость приходит, когда время ПРОШЛО его момент (вперёд). Отмотка не возвращает.
@@ -103,7 +108,7 @@ namespace TimelessBrew
                 var a = _schedule[i];
                 // Помечаем «пришёл» ТОЛЬКО если реально добавился: при заполненных местах попытка
                 // повторится в следующем кадре, когда освободится слот — гость не теряется.
-                if (!a.fired && f >= a.frac && _service != null && _service.Call(a.guest, a.morning))
+                if (!a.fired && f >= a.frac && f < 1f && _service != null && _service.Call(a.guest, a.morning))
                 {
                     a.fired = true; _schedule[i] = a;
                 }
@@ -112,10 +117,20 @@ namespace TimelessBrew
             ApplyLighting();
             if (Phase != _lastPhase) { _lastPhase = Phase; OnPhaseChanged(_lastPhase); }
 
-            // Конец дня — подведение итогов смены (один раз).
-            if (!_dayEnded && DayFraction >= 1f)
+            // Время вышло — кофейня закрывается: новых гостей не зовём (см. условие расписания выше),
+            // а итоги подводим только когда ушёл последний гость (его обслужили).
+            if (!_closing && DayFraction >= 1f)
+            {
+                _closing = true;
+                int left = _service != null ? _service.GuestCount : 0;
+                ToastUI.Toast(left > 0 ? "Рабочий день окончен — обслужите оставшихся гостей"
+                                       : "Рабочий день окончен", ToastUI.Neutral, 4f);
+            }
+            // Итоги — когда время вышло И ушёл последний гость (а не раньше; при отмотке времени ниже конца дня ждём снова).
+            if (!_dayEnded && DayFraction >= 1f && (_service == null || _service.GuestCount == 0))
             {
                 _dayEnded = true;
+                if (IsPaused) { IsPaused = false; ApplyTimeScale(); }   // снять свою паузу: единственным владельцем стопа времени/ModalGuard будет окно итогов
                 EndOfDayUI.Show(_service != null ? _service.Served : 0, _service != null ? _service.TotalStars : 0);
             }
         }

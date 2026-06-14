@@ -48,9 +48,14 @@ namespace TimelessBrew.UI
 
         private void LateUpdate()
         {
-            if (_stove == null) { _stove = FindFirstObjectByType<Stove>(); return; }
+            if (_stove == null) _stove = FindFirstObjectByType<Stove>();
             if (_cam == null) _cam = Camera.main;
-            if (_cam == null) return;
+            // Нет печи в сцене (например, это не кухня) — прячем датчик, чтобы цветная полоса не висела на экране.
+            if (_stove == null || _cam == null)
+            {
+                if (_root != null && _root.gameObject.activeSelf) _root.gameObject.SetActive(false);
+                return;
+            }
 
             float t = Mathf.Clamp01((_stove.Arrow + 1f) * 0.5f);   // -1..1 → 0..1
             _needle.anchoredPosition = new Vector2((t - 0.5f) * Width, 0f);

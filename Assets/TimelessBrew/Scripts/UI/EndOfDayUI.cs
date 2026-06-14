@@ -66,7 +66,7 @@ namespace TimelessBrew.UI
             _canvasGo.SetActive(true);
             ModalGuard.Push();
             Time.timeScale = 0f;
-            AudioManager.Instance.PlayMusic(Music.Endshift);
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayMusic(Music.Endshift);
         }
 
         // ===================== UI =====================

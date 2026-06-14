@@ -12,6 +12,9 @@ namespace TimelessBrew
         [SerializeField] private int slots = 4;   // по числу крючков
         private readonly List<Check> _pinned = new();
 
+        /// <summary>Сколько чеков сейчас висит (для обучения).</summary>
+        public int PinnedCount => _pinned.Count;
+
         /// <summary>Повесить чек. false — мест нет.</summary>
         public bool Pin(Check c)
         {

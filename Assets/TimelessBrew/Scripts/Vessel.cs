@@ -100,7 +100,8 @@ namespace TimelessBrew
                 _brewProgress = Mathf.Min(1f, _brewProgress + brewRate * Heat * dt);   // варка — НЕ сбивается ложкой
                 mix.temperature = Mathf.Min(1f, mix.temperature + 0.3f * Heat * dt);
                 mix.foam += foamRate * Heat * dt;
-                if (mix.foam >= 1f) { mix.foam = 1f; Ruined = true; }   // перелив пенки = брак
+                // Перелив пенки = брак. На время обучения брак отключён, чтобы новичок не застрял.
+                if (mix.foam >= 1f) { mix.foam = 1f; if (!UI.TutorialController.Active) Ruined = true; }
             }
 
             // Сняли с печки: готовность по ПРОГРЕССУ варки (не по пенке), если не убежал.
