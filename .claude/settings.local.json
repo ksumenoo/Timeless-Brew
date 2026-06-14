@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Write-Output \"===== Timeless-Brew-main =====\"; Get-ChildItem -Path \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Timeless-Brew-main\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\\",\"\"\\) })",
+      "PowerShell($py = Get-Command python -ErrorAction SilentlyContinue; if \\($py\\) { Write-Output \"python: $\\($py.Source\\)\" } else { Write-Output \"no python\" }; $blender = Get-Command blender -ErrorAction SilentlyContinue; if \\($blender\\) { Write-Output \"blender: $\\($blender.Source\\)\" } else { Write-Output \"no blender on PATH\" }; Get-Content \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Timeless-Brew-main\\\\ProjectSettings\\\\ProjectVersion.txt\")",
+      "Bash(python -)",
+      "PowerShell(Get-ChildItem -Recurse Assets, blend-model, \"Timeless-Brew-main\", .claude -File | Where-Object { $_.Extension -ne '.meta' } | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 250)",
+      "PowerShell(extract-text \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Timeless-Brew-main\\\\TimelessBrew_DizDok_v4_3.docx\")",
+      "PowerShell(pandoc \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Timeless-Brew-main\\\\TimelessBrew_DizDok_v4_3.docx\" -t gfm -o \"$env:TEMP\\\\dizdok_v43.md\"; Get-Item \"$env:TEMP\\\\dizdok_v43.md\" | Select-Object Length)",
+      "PowerShell($root = \"R:\\\\Projects Unity Hub\\\\TimelessBrew\"; Get-Item \"$root\\\\Assets\\\\TimelessBrew\\\\Scenes\\\\Kitchen.unity\" | Select-Object LastWriteTime; foreach \\($s in 'Sink','Colander','Bellows','CameraSwivel'\\) { $meta = Get-Content \"$root\\\\Assets\\\\TimelessBrew\\\\Scripts\\\\$s.cs.meta\" -ErrorAction SilentlyContinue | Select-String 'guid:'; $guid = \\($meta -split 'guid: '\\)[1]; $hits = \\(Select-String -Path \"$root\\\\Assets\\\\TimelessBrew\\\\Scenes\\\\Kitchen.unity\" -Pattern $guid -SimpleMatch -ErrorAction SilentlyContinue | Measure-Object\\).Count; \"$s \\($guid\\): в сцене $hits раз\" })",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Assets\\\\TimelessBrew\\\\Art\\\\Models\\\\pech.fbx\"\\); $text = [System.Text.Encoding]::ASCII.GetString\\($bytes\\); $matches = [regex]::Matches\\($text, '[\\\\x20-\\\\x7E]{4,}'\\) | ForEach-Object { $_.Value } | Where-Object { $_ -match 'Model::|Geometry::|Material::' } | Select-Object -Unique; $matches)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Assets\\\\TimelessBrew\\\\Art\\\\Models\\\\pech.fbx\"\\); $sb = New-Object System.Text.StringBuilder; foreach \\($b in $bytes\\) { if \\($b -ge 32 -and $b -le 126\\) { [void]$sb.Append\\([char]$b\\) } else { [void]$sb.Append\\(\"`n\"\\) } }; $lines = $sb.ToString\\(\\) -split \"`n\" | Where-Object { $_.Length -ge 3 } ; $idx = 0; $out = @\\(\\); for \\($i=0; $i -lt $lines.Count; $i++\\) { if \\($lines[$i] -in @\\('Model','Geometry','Material'\\) -and $i -gt 0\\) { $out += \"$\\($lines[$i]\\): $\\($lines[$i-1]\\)\" } }; $out | Select-Object -Unique)",
+      "PowerShell(Get-Process Unity -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PYTHONUTF8='1'; python \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Temp\\\\extract_dizdok.py\"; \\(Get-Content \"R:\\\\Projects Unity Hub\\\\TimelessBrew\\\\Temp\\\\dizdok_v4_4.txt\" | Measure-Object -Line\\).Lines)",
+      "Read(//r/r/Projects Unity Hub/TimelessBrew/Assets/TimelessBrew/**)",
+      "Read(//r/r/Projects Unity Hub/TimelessBrew/Assets/TimelessBrew/Scenes/**)",
+      "Bash(pandoc --version)",
+      "Bash(python -c \"import docx; print\\('python-docx OK', docx.__version__\\)\")",
+      "Bash(python -c \"import fitz; print\\('PyMuPDF', fitz.__doc__[:40]\\)\")",
+      "Bash(python -c \"import pdfplumber; print\\('pdfplumber OK'\\)\")",
+      "Bash(python -c \"import pypdf; print\\('pypdf OK'\\)\")",
+      "Bash(python -c \"import PyPDF2; print\\('PyPDF2 OK'\\)\")",
+      "Bash(python -m pip install --quiet pymupdf)",
+      "Bash(python -c \"import fitz; print\\('PyMuPDF ready'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python _build_ch.py)",
+      "Bash(iconv -f cp1251 -t utf-8)",
+      "Bash(cd \"R:/Projects Unity Hub/TimelessBrew/Курсовая\" && rm -f _dump_docx.txt _verify.txt _verify2.txt _verify3.txt _verify4.txt _verify_headings.txt _pdf_*.txt && echo \"--- scratch removed ---\" && ls -1 | cat)",
+      "Bash(rm -rf _test_tbl.docx __pycache__)",
+      "Bash(python -c \"import os; print\\('output size KB:', round\\(os.path.getsize\\('Курсовичок \\(с главами 2-3\\).docx'\\)/1024\\)\\)\")",
+      "Bash(grep -vi \"\\\\.meta$\")",
+      "Bash(python _build_diz.py)",
+      "Bash(python _build_diz2.py)"
+    ]
+  }
+}

@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/TimelessBrew/Scenes/MainMenu.unity
+    guid: d3cae5acd67dfa74eb10209b26e5641f
+  - enabled: 1
+    path: Assets/TimelessBrew/Scenes/Kitchen.unity
+    guid: a3beaf7b02abd4e4cbae35001b561ae2
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
